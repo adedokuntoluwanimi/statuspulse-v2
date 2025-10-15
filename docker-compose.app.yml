@@ -2,23 +2,21 @@ version: "3.9"
 
 services:
   backend:
-    image: ghcr.io/adedokuntoluwanimi/statuspulse-backend:${IMAGE_TAG:-latest}
+    image: ghcr.io/adedokuntoluwanimi/statuspulse-backend:latest
     container_name: statuspulse-backend
     ports:
       - "8000:8000"
+    env_file:
+      - ./backend/.env
     restart: unless-stopped
-    volumes:
-      - statuspulse_data:/data
 
   frontend:
-    image: ghcr.io/adedokuntoluwanimi/statuspulse-frontend:${IMAGE_TAG:-latest}
+    image: ghcr.io/adedokuntoluwanimi/statuspulse-frontend:latest
     container_name: statuspulse-frontend
+    ports:
+      - "3000:3000"
     depends_on:
       - backend
     environment:
       - NEXT_PUBLIC_API_URL=http://backend:8000
-    ports:
-      - "3000:3000"
     restart: unless-stopped
-    volumes:
-      - statuspulse_data:/data
