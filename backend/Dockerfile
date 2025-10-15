@@ -1,23 +1,29 @@
+# ---------- 1. Build Stage ----------
 FROM python:3.11-slim AS build
-WORKDIR /w
-ENV PIP_NO_CACHE_DIR=1
-COPY requirements.txt .
-RUN pip install --upgrade pip && pip install --prefix=/opt/py -r requirements.txt
 
-FROM python:3.11-slim
 WORKDIR /app
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PATH="/opt/py/bin:$PATH"
 
-# Security: run as non-root
-RUN useradd -r -u 10001 appuser
-COPY --from=build /opt/py /opt/py
+# Install dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application source
 COPY . .
 
-# Persist DB file outside image if you want:
-# VOLUME ["/app"]   # uncomment if you plan to mount /app/statuspulse.db
+# ---------- 2. Runtime Stage ----------
+FROM python:3.11-slim AS runtime
 
-USER appuser
+WORKDIR /app
+
+# Copy installed packages and app source from build stage
+COPY --from=build /usr/local/lib/python3.11 /usr/local/lib/python3.11
+COPY --from=build /app /app
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PORT=8000
+
 EXPOSE 8000
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+# Command to run the backend server
+CMD ["python", "main.py"]

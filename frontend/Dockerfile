@@ -1,31 +1,32 @@
-# ---- build stage ----
+# ---------- 1. Build Stage ----------
 FROM node:22-alpine AS build
+
+# Set working directory
 WORKDIR /app
 
-ENV NEXT_TELEMETRY_DISABLED=1
-
-# Only lockfiles first for better caching
-COPY package.json package-lock.json ./
+# Copy package files and install dependencies
+COPY package*.json ./
 RUN npm ci
 
-# Now app code
+# Copy all source code
 COPY . .
 
-# Standalone output (includes only the code it needs)
+# Build the Next.js app in standalone mode
 RUN npm run build
 
-# ---- runtime stage ----
+# ---------- 2. Runtime Stage ----------
 FROM node:22-alpine AS runtime
+
 WORKDIR /app
-ENV NODE_ENV=production \
-    PORT=3000
 
-# Copy the minimal standalone server
-COPY --from=build /app/.next/standalone ./          # contains server + minimal node_modules
-COPY --from=build /app/.next/static ./.next/static
+ENV NODE_ENV=production
+ENV PORT=3000
+
+# Copy only the standalone server output and public assets
+COPY --from=build /app/.next/standalone ./
 COPY --from=build /app/public ./public
+COPY --from=build /app/.next/static ./.next/static
 
+# Expose port and start server
 EXPOSE 3000
-
-# Run the Next standalone server
 CMD ["node", "server.js"]
