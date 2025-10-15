@@ -1,0 +1,32 @@
+version: "3.9"
+
+services:
+  backend:
+    image: ghcr.io/adedokuntoluwanimi/statuspulse-backend:${IMAGE_TAG:-latest}
+    container_name: statuspulse-backend
+    environment:
+      - TZ=UTC
+    ports:
+      - "8000:8000"
+    volumes:
+      - statuspulse_data:/app     # to persist SQLite DB
+    restart: unless-stopped
+    volumes:
+      - statuspulse_data:/data
+
+  frontend:
+    image: ghcr.io/adedokuntoluwanimi/statuspulse-frontend:${IMAGE_TAG:-latest}
+    container_name: statuspulse-frontend
+    environment:
+      - NEXT_PUBLIC_API_URL=http://backend:8000
+      - TZ=UTC
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+    restart: unless-stopped
+    volumes:
+      - statuspulse_data:/data
+
+volumes:
+  statuspulse_data:
